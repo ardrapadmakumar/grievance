@@ -1,0 +1,158 @@
+﻿@model List<grievance.Models.InternalMark>
+@using grievance.Models
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "All Student Marks";
+    var selectedDept = ViewBag.SelectedDept as string ?? "";
+    var selectedGrade = ViewBag.SelectedGrade as string ?? "";
+    var grades = new[] { "A+", "A", "B+", "B", "C", "F" };
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">All Student Marks</h1>
+    <p class="pg-sub">Internal marks across all departments — filter by department or grade</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-lbl">Total Entries</div>
+        <div class="stat-val c-purple">@ViewBag.TotalSubjects</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Students</div>
+        <div class="stat-val c-green">@ViewBag.TotalStudents</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Failing (F)</div>
+        <div class="stat-val c-red">@ViewBag.Failing</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4" style="padding:16px 22px">
+    <form method="get" class="flex flex-wrap items-center gap-3">
+        <div style="flex:1;min-width:160px">
+            <label>Department</label>
+            <select name="dept" onchange="this.form.submit()">
+                <option value="">All Departments</option>
+                @foreach (var d in Enum.GetValues<Department>())
+                {
+                    if (selectedDept == d.ToString())
+                    {
+                        <option value="@d" selected>@d</option>
+                    }
+                    else
+                    {
+                        <option value="@d">@d</option>
+                    }
+                }
+            </select>
+        </div>
+        <div style="flex:1;min-width:140px">
+            <label>Grade</label>
+            <select name="grade" onchange="this.form.submit()">
+                <option value="">All Grades</option>
+                @foreach (var g in grades)
+                {
+                    if (selectedGrade == g)
+                    {
+                        <option value="@g" selected>@g</option>
+                    }
+                    else
+                    {
+                        <option value="@g">@g</option>
+                    }
+                }
+            </select>
+        </div>
+        <div style="padding-top:18px">
+            <a href="/Principal/Marks" class="btn btn-ghost btn-sm">Clear Filters</a>
+        </div>
+    </form>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div class="empty">
+            <div class="empty-ico">◈</div>
+            <div>No marks found for the selected filters.</div>
+        </div>
+    </div>
+}
+else
+{
+    @* Group by department *@
+    @foreach (var dept in Enum.GetValues<Department>())
+    {
+        var deptMarks = Model.Where(m => m.Department == dept).ToList();
+        if (!deptMarks.Any()) continue;
+
+        <div class="card mb-4">
+            <div class="card-head">
+                <span class="card-title">@dept Department</span>
+                <div class="flex gap-2 items-center">
+                    <span class="badge b-inprogress">@deptMarks.Select(m => m.StudentId).Distinct().Count() students</span>
+                    <span class="badge b-pending">@deptMarks.Count entries</span>
+                    @if (deptMarks.Any(m => m.Grade == "F"))
+                    {
+                        <span class="badge b-rejected">@deptMarks.Count(m => m.Grade == "F") failing</span>
+                    }
+                </div>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Roll No</th>
+                            <th>Subject</th>
+                            <th>Mark</th>
+                            <th>Max</th>
+                            <th>Grade</th>
+                            <th>Revaluation</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in deptMarks)
+                        {
+                            <tr>
+                                <td style="font-weight:600">@m.Student.Name</td>
+                                <td class="text-muted text-sm">@m.Student.RollNumber</td>
+                                <td>
+                                    <div>@m.SubjectName</div>
+                                    <div class="text-muted text-sm">@m.SubjectCode</div>
+                                </td>
+                                <td style="font-weight:700;font-size:15px">@m.Mark</td>
+                                <td class="text-muted">@m.MaxMark</td>
+                                <td>
+                                    @{
+                                        var badgeClass = m.Grade == "F" ? "b-rejected"
+                                                       : m.Grade.StartsWith("A") ? "b-solved"
+                                                       : "b-inprogress";
+                                    }
+                                    <span class="badge @badgeClass">@m.Grade</span>
+                                </td>
+                                <td>
+                                    @if (m.RevaluationRequest != null)
+                                    {
+                                        <span class="badge b-@m.RevaluationRequest.Status.ToString().ToLower()">
+                                            @m.RevaluationRequest.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted text-sm">—</span>
+                                    }
+                                </td>
+                                <td class="text-muted text-sm">@m.UpdatedAt.ToString("dd MMM yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}

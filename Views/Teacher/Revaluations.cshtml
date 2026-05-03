@@ -1,0 +1,152 @@
+﻿@model List<grievance.Models.RevaluationRequest>
+@using grievance.Models
+@{
+    Layout = "_Layout"; ViewData["Title"] = "Revaluation Requests";
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">Revaluation Requests</h1>
+    <p class="pg-sub">Review and respond to student revaluation requests</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">✓ @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-error">✕ @TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div class="empty">
+            <div class="empty-ico">↺</div>
+            <div>No revaluation requests yet.</div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Current Mark</th>
+                        <th>Reason</th>
+                        <th>Requested</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">@r.Mark.Student.Name</div>
+                                <div class="text-muted text-sm">@r.Mark.Student.RollNumber</div>
+                            </td>
+                            <td>
+                                <div>@r.Mark.SubjectName</div>
+                                <div class="text-muted text-sm">@r.Mark.SubjectCode</div>
+                            </td>
+                            <td>
+                                <span style="font-weight:700">@r.Mark.Mark</span>
+                                <span class="text-muted text-sm">/ @r.Mark.MaxMark</span>
+                                &nbsp;
+                                <span class="badge @(r.Mark.Grade == "F" ? "b-rejected" : "b-solved")">@r.Mark.Grade</span>
+                            </td>
+                            <td style="max-width:200px">
+                                <div class="text-sm">@r.Reason</div>
+                            </td>
+                            <td class="text-muted text-sm">@r.RequestedAt.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <span class="badge b-@r.Status.ToString().ToLower()">@r.Status</span>
+                                @if (!string.IsNullOrEmpty(r.TeacherFeedback))
+                                {
+                                    <div class="text-muted text-sm mt-3">@r.TeacherFeedback</div>
+                                }
+                            </td>
+                            <td>
+                                @if (r.Status == RevaluationStatus.Requested || r.Status == RevaluationStatus.OngoingEvaluation)
+                                {
+                                    <button class="btn btn-warn btn-sm"
+                                            onclick="openReval(@r.Id, '@r.Mark.SubjectName.Replace("'", "\\'")', @r.Mark.Mark)">
+                                        Respond
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted text-sm">Closed</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Respond Modal -->
+<div class="modal-bg" id="revalModal">
+    <div class="modal">
+        <div class="flex items-center justify-between mb-4">
+            <div class="modal-title">Respond to Revaluation</div>
+            <span class="modal-close" onclick="closeReval()">✕</span>
+        </div>
+        <p class="text-sm text-muted mb-4">
+            Subject: <strong id="rSubject" style="color:var(--text)"></strong> &nbsp;·&nbsp;
+            Current Mark: <strong id="rMark" style="color:var(--accent)"></strong>
+        </p>
+
+        <form method="post" action="/Teacher/UpdateRevaluation">
+            <input type="hidden" name="id" id="revalId" />
+            <div class="form-group">
+                <label>Decision</label>
+                <select name="status" id="revalStatus" onchange="toggleNewMark(this.value)">
+                    <option value="OngoingEvaluation">Mark as Under Evaluation</option>
+                    <option value="NoChange">No Change</option>
+                    <option value="GradeChanged">Grade Changed</option>
+                </select>
+            </div>
+            <div class="form-group" id="newMarkGroup" style="display:none">
+                <label>New Mark</label>
+                <input type="number" name="newMark" id="newMarkInput" min="0" max="100" />
+            </div>
+            <div class="form-group">
+                <label>Feedback to Student</label>
+                <textarea name="feedback" placeholder="Explain your decision..."></textarea>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Submit Response</button>
+                <button type="button" class="btn btn-ghost" onclick="closeReval()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openReval(id, subject, mark) {
+            document.getElementById('revalId').value    = id;
+            document.getElementById('rSubject').textContent = subject;
+            document.getElementById('rMark').textContent    = mark;
+            document.getElementById('revalModal').classList.add('show');
+        }
+        function closeReval() {
+            document.getElementById('revalModal').classList.remove('show');
+        }
+        function toggleNewMark(val) {
+            const grp = document.getElementById('newMarkGroup');
+            const inp = document.getElementById('newMarkInput');
+            grp.style.display = val === 'GradeChanged' ? 'block' : 'none';
+            inp.required = val === 'GradeChanged';
+        }
+    </script>
+}

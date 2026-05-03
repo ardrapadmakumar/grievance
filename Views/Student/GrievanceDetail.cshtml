@@ -1,0 +1,80 @@
+﻿@model grievance.Models.Grievance
+@{
+    Layout = "_Layout"; ViewData["Title"] = "Grievance Detail";
+}
+
+<div class="pg-header flex items-center gap-3">
+    <a href="/Student/Index" class="btn btn-ghost btn-sm">← Back</a>
+    <div>
+        <h1 class="pg-title">@Model.Title</h1>
+        <p class="pg-sub">Submitted on @Model.SubmittedAt.ToString("dd MMM yyyy, hh:mm tt")</p>
+    </div>
+</div>
+
+<div style="max-width:680px">
+    <div class="card">
+        <div class="flex items-center justify-between mb-4">
+            <span class="badge b-@Model.Status.ToString().ToLower()" style="font-size:13px;padding:5px 14px">
+                @Model.Status
+            </span>
+            <span class="text-muted text-sm">@Model.Category</span>
+        </div>
+
+        <hr class="div" />
+
+        <div class="form-group">
+            <label>Description</label>
+            <p style="line-height:1.7;color:var(--text)">@Model.Description</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.TeacherRemarks))
+        {
+            <hr class="div" />
+            <div class="form-group">
+                <label>📝 Teacher Remarks</label>
+                <p style="line-height:1.7;color:var(--text)">@Model.TeacherRemarks</p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.PrincipalRemarks))
+        {
+            <hr class="div" />
+            <div class="form-group">
+                <label>🏫 Principal Remarks</label>
+                <p style="line-height:1.7;color:var(--text)">@Model.PrincipalRemarks</p>
+            </div>
+        }
+
+        @if (Model.UpdatedAt.HasValue)
+        {
+            <hr class="div" />
+            <p class="text-sm text-muted">Last updated: @Model.UpdatedAt.Value.ToString("dd MMM yyyy, hh:mm tt")</p>
+        }
+    </div>
+
+    <!-- Timeline -->
+    <div class="card">
+        <div class="card-title mb-4">Status Timeline</div>
+        <div style="display:flex;flex-direction:column;gap:0">
+            @{
+                var steps = new[] {
+                    ("Submitted",   "✉",  true),
+                    ("In Progress", "⚙",  Model.Status != GrievanceStatus.Pending),
+                    ("Resolved",    "✓",  Model.Status == GrievanceStatus.Solved || Model.Status == GrievanceStatus.Resolved)
+                };
+            }
+            @foreach (var (label, ico, done) in steps)
+            {
+                <div class="flex items-center gap-3" style="margin-bottom:16px">
+                    <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;
+                        background:@(done ? "rgba(38,222,129,.15)" : "var(--surface2)");
+                        color:@(done ? "var(--green)" : "var(--muted)");
+                        border:1px solid @(done ? "rgba(38,222,129,.3)" : "var(--border)")">
+                        @ico
+                    </div>
+                    <span style="color:@(done ? "var(--text)" : "var(--muted)")">@label</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>

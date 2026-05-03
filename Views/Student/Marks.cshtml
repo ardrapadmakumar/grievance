@@ -1,0 +1,130 @@
+﻿@model List<grievance.Models.InternalMark>
+@using grievance.Models
+@{
+    Layout = "_Layout"; ViewData["Title"] = "My Marks";
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">Internal Marks</h1>
+    <p class="pg-sub">View your marks and request revaluation if needed</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">✓ @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-error">✕ @TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div class="empty">
+            <div class="empty-ico">◈</div>
+            <div>No marks have been entered for you yet.</div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Mark</th>
+                        <th>Max</th>
+                        <th>Grade</th>
+                        <th>Revaluation Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">@m.SubjectName</div>
+                                <div class="text-muted text-sm">@m.SubjectCode</div>
+                            </td>
+                            <td style="font-weight:700;font-size:15px">@m.Mark</td>
+                            <td class="text-muted">@m.MaxMark</td>
+                            <td>
+                                <span class="badge @(m.Grade == "F" ? "b-rejected" : m.Grade.StartsWith("A") ? "b-solved" : "b-inprogress")">
+                                    @m.Grade
+                                </span>
+                            </td>
+                            <td>
+                                @if (m.RevaluationRequest != null)
+                                {
+                                    var r = m.RevaluationRequest;
+                                    <span class="badge b-@r.Status.ToString().ToLower()">@r.Status</span>
+                                    @if (!string.IsNullOrEmpty(r.TeacherFeedback))
+                                    {
+                                        <div class="text-muted text-sm mt-3">💬 @r.TeacherFeedback</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted text-sm">No request</span>
+                                }
+                            </td>
+                            <td>
+                                @if (m.RevaluationRequest == null)
+                                {
+                                    <button class="btn btn-warn btn-sm"
+                                            onclick="openReval(@m.Id, '@m.SubjectName')">
+                                        ↺ Request Reval
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted text-sm">Submitted</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Revaluation Modal -->
+<div class="modal-bg" id="revalModal">
+    <div class="modal">
+        <div class="flex items-center justify-between mb-4">
+            <div class="modal-title">Request Revaluation</div>
+            <span class="modal-close" onclick="closeReval()">✕</span>
+        </div>
+        <p class="text-sm text-muted mb-4">Subject: <strong id="revalSubject" style="color:var(--text)"></strong></p>
+
+        <form method="post" action="/Student/RequestRevaluation">
+            <input type="hidden" name="markId" id="revalMarkId" />
+            <div class="form-group">
+                <label>Reason for Revaluation</label>
+                <textarea name="reason" placeholder="Explain why you feel your marks should be reviewed..." required></textarea>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-warn">Submit Request</button>
+                <button type="button" class="btn btn-ghost" onclick="closeReval()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openReval(markId, subject) {
+            document.getElementById('revalMarkId').value = markId;
+            document.getElementById('revalSubject').textContent = subject;
+            document.getElementById('revalModal').classList.add('show');
+        }
+        function closeReval() {
+            document.getElementById('revalModal').classList.remove('show');
+        }
+    </script>
+}

@@ -1,0 +1,106 @@
+﻿@using grievance.Models
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Teacher Dashboard";
+    var user = ViewBag.User as User;
+    var grievances = ViewBag.Grievances as List<Grievance> ?? new();
+    var marks = ViewBag.Marks as List<InternalMark> ?? new();
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">Welcome, @user?.Name 👋</h1>
+    <p class="pg-sub">@user?.Department Department &nbsp;·&nbsp; Employee ID: @user?.EmployeeId</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-lbl">Total Grievances</div>
+        <div class="stat-val c-purple">@ViewBag.Total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Pending</div>
+        <div class="stat-val c-yellow">@ViewBag.Pending</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Solved</div>
+        <div class="stat-val c-green">@ViewBag.Solved</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Forwarded</div>
+        <div class="stat-val c-red">@ViewBag.Forwarded</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Pending Revals</div>
+        <div class="stat-val c-yellow">@ViewBag.PendingRevals</div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- Recent Grievances -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">Recent Grievances</span>
+            <a href="/Teacher/Grievances" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        @if (!grievances.Any())
+        {
+            <div class="empty"><div class="empty-ico">✉</div><div>No grievances yet.</div></div>
+        }
+        else
+        {
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr><th>Student</th><th>Title</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var g in grievances.Take(5))
+                        {
+                            <tr>
+                                <td>
+                                    <div style="font-weight:600">@g.Student.Name</div>
+                                    <div class="text-muted text-sm">@g.Student.RollNumber</div>
+                                </td>
+                                <td>@g.Title</td>
+                                <td><span class="badge b-@g.Status.ToString().ToLower()">@g.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Recent Marks -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">Recent Marks Entered</span>
+            <a href="/Teacher/Marks" class="btn btn-ghost btn-sm">Manage</a>
+        </div>
+        @if (!marks.Any())
+        {
+            <div class="empty"><div class="empty-ico">◈</div><div>No marks entered yet.</div></div>
+        }
+        else
+        {
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr><th>Student</th><th>Subject</th><th>Mark</th><th>Grade</th></tr></thead>
+                    <tbody>
+                        @foreach (var m in marks.Take(6))
+                        {
+                            <tr>
+                                <td>
+                                    <div style="font-weight:600">@m.Student.Name</div>
+                                    <div class="text-muted text-sm">@m.Student.RollNumber</div>
+                                </td>
+                                <td class="text-sm">@m.SubjectCode</td>
+                                <td>@m.Mark/@m.MaxMark</td>
+                                <td><span class="badge @(m.Grade == "F" ? "b-rejected" : "b-solved")">@m.Grade</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

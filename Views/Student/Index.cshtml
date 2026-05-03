@@ -1,0 +1,139 @@
+﻿@using grievance.Models
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Student Dashboard";
+    var user = ViewBag.User as User;
+    var grievances = ViewBag.Grievances as List<Grievance> ?? new();
+    var marks = ViewBag.Marks as List<InternalMark> ?? new();
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">Welcome, @user?.Name 👋</h1>
+    <p class="pg-sub">@user?.Department Department &nbsp;·&nbsp; Roll No: @user?.RollNumber</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">✓ @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-error">✕ @TempData["Error"]</div>
+}
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-lbl">Total Grievances</div>
+        <div class="stat-val c-purple">@ViewBag.Total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Pending</div>
+        <div class="stat-val c-yellow">@ViewBag.Pending</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Solved</div>
+        <div class="stat-val c-green">@ViewBag.Solved</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Forwarded</div>
+        <div class="stat-val c-red">@ViewBag.Forwarded</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Subjects</div>
+        <div class="stat-val c-muted">@marks.Count</div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- Recent Grievances -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">My Grievances</span>
+            <a href="/Student/SubmitGrievance" class="btn btn-primary btn-sm">+ New</a>
+        </div>
+        @if (!grievances.Any())
+        {
+            <div class="empty">
+                <div class="empty-ico">✉</div>
+                <div>No grievances submitted yet.</div>
+                <a href="/Student/SubmitGrievance" class="btn btn-primary mt-3">Submit First Grievance</a>
+            </div>
+        }
+        else
+        {
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var g in grievances.Take(5))
+                        {
+                            <tr style="cursor:pointer" onclick="location.href='/Student/GrievanceDetail/@g.Id'">
+                                <td>@g.Title</td>
+                                <td class="text-muted text-sm">@g.Category</td>
+                                <td><span class="badge b-@g.Status.ToString().ToLower()">@g.Status</span></td>
+                                <td class="text-muted text-sm">@g.SubmittedAt.ToString("dd MMM")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (grievances.Count > 5)
+            {
+                <div class="mt-3 text-sm text-muted">Showing 5 of @grievances.Count</div>
+            }
+        }
+    </div>
+
+    <!-- Internal Marks -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">Internal Marks</span>
+            <a href="/Student/Marks" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        @if (!marks.Any())
+        {
+            <div class="empty">
+                <div class="empty-ico">◈</div>
+                <div>No marks entered yet.</div>
+            </div>
+        }
+        else
+        {
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Subject</th><th>Mark</th><th>Grade</th><th>Reval</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in marks)
+                        {
+                            <tr>
+                                <td>
+                                    <div>@m.SubjectName</div>
+                                    <div class="text-muted text-sm">@m.SubjectCode</div>
+                                </td>
+                                <td>@m.Mark / @m.MaxMark</td>
+                                <td><span class="badge @(m.Grade == "F" ? "b-rejected" : "b-solved")">@m.Grade</span></td>
+                                <td>
+                                    @if (m.RevaluationRequest != null)
+                                    {
+                                        <span class="badge b-@m.RevaluationRequest.Status.ToString().ToLower()">
+                                            @m.RevaluationRequest.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted text-sm">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

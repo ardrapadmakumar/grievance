@@ -1,0 +1,207 @@
+﻿@model List<grievance.Models.Grievance>
+@using grievance.Models
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "All Grievances";
+    var selectedDept = ViewBag.SelectedDept as string ?? "";
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">All Grievances</h1>
+    <p class="pg-sub">Filter, review and take final decisions on all department grievances</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">✓ @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-error">✕ @TempData["Error"]</div>
+}
+
+<!-- Filters -->
+<div class="card mb-4" style="padding:16px 22px">
+    <form method="get" class="flex flex-wrap items-center gap-3">
+        <div style="flex:1;min-width:160px">
+            <label>Department</label>
+            <select name="dept" onchange="this.form.submit()">
+                <option value="">All Departments</option>
+                @foreach (var d in Enum.GetValues<Department>())
+                {
+                    if (selectedDept == d.ToString())
+                    {
+                        <option value="@d" selected>@d</option>
+                    }
+                    else
+                    {
+                        <option value="@d">@d</option>
+                    }
+                }
+            </select>
+        </div>
+        <div style="flex:1;min-width:160px">
+            <label>Status</label>
+            <select name="status" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                @foreach (var s in Enum.GetValues<GrievanceStatus>())
+                {
+                    if (selectedStatus == s.ToString())
+                    {
+                        <option value="@s" selected>@s</option>
+                    }
+                    else
+                    {
+                        <option value="@s">@s</option>
+                    }
+                }
+            </select>
+        </div>
+        <div style="padding-top:18px">
+            <a href="/Principal/Grievances" class="btn btn-ghost btn-sm">Clear Filters</a>
+        </div>
+    </form>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div class="empty">
+            <div class="empty-ico">✉</div>
+            <div>No grievances match your filters.</div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">@Model.Count Grievance@(Model.Count != 1 ? "s" : "")</span>
+        </div>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Title</th>
+                        <th>Dept</th>
+                        <th>Category</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                        <th>Forwarded</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">@g.Student.Name</div>
+                                <div class="text-muted text-sm">@g.Student.RollNumber</div>
+                            </td>
+                            <td>
+                                <div>@g.Title</div>
+                                <div class="text-muted text-sm"
+                                     style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                    @g.Description
+                                </div>
+                                @if (!string.IsNullOrEmpty(g.TeacherRemarks))
+                                {
+                                    <div class="text-muted text-sm mt-3">
+                                        📝 <em>@g.TeacherRemarks</em>
+                                    </div>
+                                }
+                            </td>
+                            <td><span class="badge b-inprogress">@g.Department</span></td>
+                            <td class="text-muted text-sm">@g.Category</td>
+                            <td class="text-muted text-sm">@g.SubmittedAt.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <span class="badge b-@g.Status.ToString().ToLower()">@g.Status</span>
+                                @if (!string.IsNullOrEmpty(g.PrincipalRemarks))
+                                {
+                                    <div class="text-muted text-sm mt-3">
+                                        🏫 <em>@g.PrincipalRemarks</em>
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                @if (g.ForwardedToPrincipal)
+                                {
+                                    <span class="badge b-forwarded">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted text-sm">No</span>
+                                }
+                            </td>
+                            <td>
+                                @if (g.Status != GrievanceStatus.Resolved && g.Status != GrievanceStatus.Rejected)
+                                {
+                                    <button class="btn btn-warn btn-sm"
+                                            onclick="openUpdate(@g.Id, '@g.Title.Replace("'", "\\'")', '@g.Status')">
+                                        Decide
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted text-sm">Closed</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Update Modal -->
+<div class="modal-bg" id="updateModal">
+    <div class="modal">
+        <div class="flex items-center justify-between mb-4">
+            <div class="modal-title">Take Final Decision</div>
+            <span class="modal-close" onclick="closeUpdate()">✕</span>
+        </div>
+        <p class="text-sm text-muted mb-4">
+            Grievance: <strong id="gTitle" style="color:var(--text)"></strong>
+        </p>
+        <form method="post" action="/Principal/UpdateGrievance">
+            <input type="hidden" name="id" id="gId" />
+            <div class="form-group">
+                <label>Final Decision</label>
+                <select name="status" id="gStatus">
+                    <option value="UnderReview">Under Review</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Principal Remarks</label>
+                <textarea name="remarks" placeholder="Add your official remarks for the student..."></textarea>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Submit Decision</button>
+                <button type="button" class="btn btn-ghost" onclick="closeUpdate()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openUpdate(id, title, currentStatus) {
+            document.getElementById('gId').value = id;
+            document.getElementById('gTitle').textContent = title;
+            const sel = document.getElementById('gStatus');
+            for (let opt of sel.options) {
+                if (opt.value === currentStatus) { opt.selected = true; break; }
+            }
+            document.getElementById('updateModal').classList.add('show');
+        }
+        function closeUpdate() {
+            document.getElementById('updateModal').classList.remove('show');
+        }
+    </script>
+}

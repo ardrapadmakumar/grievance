@@ -1,0 +1,202 @@
+﻿@using grievance.Models
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Principal Dashboard";
+    var user = ViewBag.User as User;
+    var grievances = ViewBag.Grievances as List<Grievance> ?? new();
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">Principal Dashboard</h1>
+    <p class="pg-sub">College-wide grievance overview — all departments</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-lbl">Total Grievances</div>
+        <div class="stat-val c-purple">@ViewBag.Total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Pending</div>
+        <div class="stat-val c-yellow">@ViewBag.Pending</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Resolved</div>
+        <div class="stat-val c-green">@ViewBag.Solved</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Forwarded to You</div>
+        <div class="stat-val c-red">@ViewBag.Forwarded</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-lbl">Under Review</div>
+        <div class="stat-val c-yellow">@ViewBag.UnderReview</div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- Department Breakdown -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">Department Breakdown</span>
+        </div>
+        @{
+            var deptStats = ViewBag.DeptStats as dynamic;
+        }
+        @if (grievances.Any())
+        {
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Department</th><th>Total</th><th>Pending</th><th>Solved</th><th>Forwarded</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in (IEnumerable<dynamic>)ViewBag.DeptStats)
+                        {
+                            <tr>
+                                <td style="font-weight:600">@d.Dept</td>
+                                <td class="c-purple" style="font-weight:700">@d.Total</td>
+                                <td><span class="badge b-pending">@d.Pending</span></td>
+                                <td><span class="badge b-solved">@d.Solved</span></td>
+                                <td><span class="badge b-forwarded">@d.Forwarded</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty"><div class="empty-ico">◈</div><div>No grievances yet.</div></div>
+        }
+    </div>
+
+    <!-- Forwarded / Needs Attention -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">⚠ Needs Your Attention</span>
+            <a href="/Principal/Grievances" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        @{
+            var forwarded = grievances
+                .Where(g => g.ForwardedToPrincipal &&
+                            g.Status != GrievanceStatus.Resolved &&
+                            g.Status != GrievanceStatus.Rejected)
+                .Take(5)
+                .ToList();
+        }
+        @if (!forwarded.Any())
+        {
+            <div class="empty"><div class="empty-ico">✓</div><div>No pending forwarded grievances!</div></div>
+        }
+        else
+        {
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr><th>Student</th><th>Title</th><th>Dept</th><th>Action</th></tr></thead>
+                    <tbody>
+                        @foreach (var g in forwarded)
+                        {
+                            <tr>
+                                <td>
+                                    <div style="font-weight:600">@g.Student.Name</div>
+                                    <div class="text-muted text-sm">@g.Student.RollNumber</div>
+                                </td>
+                                <td class="text-sm">@g.Title</td>
+                                <td><span class="badge b-inprogress">@g.Department</span></td>
+                                <td>
+                                    <button class="btn btn-warn btn-sm"
+                                            onclick="openUpdate(@g.Id, '@g.Title.Replace("'", "\\'")')">
+                                        Decide
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Recent All Grievances -->
+<div class="card">
+    <div class="card-head">
+        <span class="card-title">Recent Grievances — All Departments</span>
+        <a href="/Principal/Grievances" class="btn btn-primary btn-sm">View All →</a>
+    </div>
+    @if (!grievances.Any())
+    {
+        <div class="empty"><div class="empty-ico">✉</div><div>No grievances submitted yet.</div></div>
+    }
+    else
+    {
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr><th>Student</th><th>Title</th><th>Dept</th><th>Category</th><th>Status</th><th>Submitted</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in grievances.Take(8))
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">@g.Student.Name</div>
+                                <div class="text-muted text-sm">@g.Student.RollNumber</div>
+                            </td>
+                            <td>@g.Title</td>
+                            <td><span class="badge b-inprogress">@g.Department</span></td>
+                            <td class="text-muted text-sm">@g.Category</td>
+                            <td><span class="badge b-@g.Status.ToString().ToLower()">@g.Status</span></td>
+                            <td class="text-muted text-sm">@g.SubmittedAt.ToString("dd MMM yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Quick Update Modal -->
+<div class="modal-bg" id="updateModal">
+    <div class="modal">
+        <div class="flex items-center justify-between mb-4">
+            <div class="modal-title">Take Decision</div>
+            <span class="modal-close" onclick="closeUpdate()">✕</span>
+        </div>
+        <p class="text-sm text-muted mb-4">Grievance: <strong id="gTitle" style="color:var(--text)"></strong></p>
+        <form method="post" action="/Principal/UpdateGrievance">
+            <input type="hidden" name="id" id="gId" />
+            <div class="form-group">
+                <label>Final Decision</label>
+                <select name="status">
+                    <option value="UnderReview">Under Review</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Principal Remarks</label>
+                <textarea name="remarks" placeholder="Add your remarks..."></textarea>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Submit Decision</button>
+                <button type="button" class="btn btn-ghost" onclick="closeUpdate()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openUpdate(id, title) {
+            document.getElementById('gId').value = id;
+            document.getElementById('gTitle').textContent = title;
+            document.getElementById('updateModal').classList.add('show');
+        }
+        function closeUpdate() {
+            document.getElementById('updateModal').classList.remove('show');
+        }
+    </script>
+}

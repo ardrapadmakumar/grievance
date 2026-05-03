@@ -1,0 +1,199 @@
+﻿@model List<grievance.Models.InternalMark>
+@using grievance.Models
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Manage Marks";
+    var students = ViewBag.Students as List<User> ?? new();
+}
+
+<div class="pg-header flex items-center justify-between">
+    <div>
+        <h1 class="pg-title">Manage Internal Marks</h1>
+        <p class="pg-sub">Add, edit or delete marks for your department students</p>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('addModal').classList.add('show')">
+        + Add Mark
+    </button>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">✓ @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-error">✕ @TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div class="empty">
+            <div class="empty-ico">◈</div>
+            <div>No marks entered yet. Click "+ Add Mark" to get started.</div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Mark</th>
+                        <th>Max</th>
+                        <th>Grade</th>
+                        <th>Revaluation</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">@m.Student.Name</div>
+                                <div class="text-muted text-sm">@m.Student.RollNumber</div>
+                            </td>
+                            <td>
+                                <div>@m.SubjectName</div>
+                                <div class="text-muted text-sm">@m.SubjectCode</div>
+                            </td>
+                            <td style="font-weight:700">@m.Mark</td>
+                            <td class="text-muted">@m.MaxMark</td>
+                            <td>
+                                <span class="badge @(m.Grade == "F" ? "b-rejected" : m.Grade.StartsWith("A") ? "b-solved" : "b-inprogress")">
+                                    @m.Grade
+                                </span>
+                            </td>
+                            <td>
+                                @if (m.RevaluationRequest != null)
+                                {
+                                    <span class="badge b-@m.RevaluationRequest.Status.ToString().ToLower()">
+                                        @m.RevaluationRequest.Status
+                                    </span>
+                                }
+                                else
+                                {
+
+                                    <span class="text-muted text-sm">None</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <button class="btn btn-warn btn-sm"
+                                            onclick="openEdit(@m.Id, @m.Mark, @m.MaxMark, '@m.SubjectName.Replace("'", "\\'")')">
+                                        Edit
+                                    </button>
+                                    <form method="post" action="/Teacher/DeleteMark"
+                                          onsubmit="return confirm('Delete this mark?')">
+                                        <input type="hidden" name="id" value="@m.Id" />
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Add Mark Modal -->
+<div class="modal-bg" id="addModal">
+    <div class="modal">
+        <div class="flex items-center justify-between mb-4">
+            <div class="modal-title">Add Internal Mark</div>
+            <span class="modal-close" onclick="document.getElementById('addModal').classList.remove('show')">✕</span>
+        </div>
+        <form method="post" action="/Teacher/AddMark">
+            <div class="form-group">
+                <label>Student</label>
+                <select name="StudentId" required>
+                    <option value="">-- Select Student --</option>
+                    @foreach (var s in students)
+                    {
+                        <option value="@s.Id">@s.Name (@s.RollNumber)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Subject Code</label>
+                    <input type="text" name="SubjectCode" placeholder="e.g. CS301" required />
+                </div>
+                <div class="form-group">
+                    <label>Subject Name</label>
+                    <input type="text" name="SubjectName" placeholder="e.g. Data Structures" required />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Mark Obtained</label>
+                    <input type="number" name="Mark" min="0" max="100" required />
+                </div>
+                <div class="form-group">
+                    <label>Maximum Mark</label>
+                    <input type="number" name="MaxMark" value="50" min="1" max="100" required />
+                </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Add Mark</button>
+                <button type="button" class="btn btn-ghost"
+                        onclick="document.getElementById('addModal').classList.remove('show')">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Mark Modal -->
+<div class="modal-bg" id="editModal">
+    <div class="modal">
+        <div class="flex items-center justify-between mb-4">
+            <div class="modal-title">Edit Mark</div>
+            <span class="modal-close" onclick="document.getElementById('editModal').classList.remove('show')">✕</span>
+        </div>
+        <form method="post" action="/Teacher/UpdateMark">
+            <input type="hidden" name="id" id="editId" />
+            <div class="form-group">
+                <label>Subject Name</label>
+                <input type="text" name="subjectName" id="editSubject" required />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Mark Obtained</label>
+                    <input type="number" name="mark" id="editMark" min="0" max="100" required />
+                </div>
+                <div class="form-group">
+                    <label>Maximum Mark</label>
+                    <input type="number" name="maxMark" id="editMax" min="1" max="100" required />
+                </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-ghost"
+                        onclick="document.getElementById('editModal').classList.remove('show')">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openEdit(id, mark, maxMark, subject) {
+            document.getElementById('editId').value      = id;
+            document.getElementById('editMark').value    = mark;
+            document.getElementById('editMax').value     = maxMark;
+            document.getElementById('editSubject').value = subject;
+            document.getElementById('editModal').classList.add('show');
+        }
+    </script>
+}

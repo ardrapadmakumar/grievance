@@ -1,0 +1,86 @@
+﻿@model List<grievance.Models.User>
+@using grievance.Models
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Students Overview";
+    var grievanceCounts = ViewBag.GrievanceCounts as Dictionary<int, int> ?? new();
+}
+
+<div class="pg-header">
+    <h1 class="pg-title">Students Overview</h1>
+    <p class="pg-sub">All registered students across every department</p>
+</div>
+
+<!-- Department summary pills -->
+<div class="flex flex-wrap gap-2 mb-4">
+    @foreach (var dept in Enum.GetValues<Department>())
+    {
+        var count = Model.Count(u => u.Department == dept);
+        if (count > 0)
+        {
+            <div class="stat-card" style="padding:12px 18px;display:inline-flex;align-items:center;gap:10px;border-radius:10px">
+                <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent)">@dept</span>
+                <span class="badge b-inprogress">@count student@(count != 1 ? "s" : "")</span>
+            </div>
+        }
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div class="empty">
+            <div class="empty-ico">◉</div>
+            <div>No students registered yet.</div>
+        </div>
+    </div>
+}
+else
+{
+    @* Group by department *@
+    @foreach (var dept in Enum.GetValues<Department>())
+    {
+        var deptStudents = Model.Where(u => u.Department == dept).ToList();
+        if (!deptStudents.Any()) continue;
+
+        <div class="card mb-4">
+            <div class="card-head">
+                <span class="card-title">@dept Department</span>
+                <span class="badge b-inprogress">@deptStudents.Count student@(deptStudents.Count != 1 ? "s" : "")</span>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Roll Number</th>
+                            <th>Email</th>
+                            <th>Grievances Filed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in deptStudents)
+                        {
+                            var gCount = grievanceCounts.GetValueOrDefault(s.Id, 0);
+                            <tr>
+                                <td style="font-weight:600">@s.Name</td>
+                                <td class="text-muted text-sm">@s.RollNumber</td>
+                                <td class="text-muted text-sm">@s.Email</td>
+                                <td>
+                                    @if (gCount > 0)
+                                    {
+                                        <span class="badge b-pending">@gCount</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted text-sm">None</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
