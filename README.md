@@ -24,6 +24,6 @@ A role-based web portal built with ASP.NET Core 9 MVC and SQL Server. Students c
 ## Demo Credentials
 | Role | Email | Password |
 |------|-------|----------|
-| Student | arjun@student.edu | student123 |
+| Student | ardra@student.edu | student123 |
 | Teacher | ravi@college.edu | teacher123 |
 | Principal | principal@college.edu | principal123 |
