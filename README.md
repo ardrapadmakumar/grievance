@@ -18,10 +18,8 @@ A role-based web portal built with ASP.NET Core 9 MVC and SQL Server. Students c
 1. Clone or download this repo
 2. Open `grievance.csproj` in Visual Studio 2022
 3. Update the connection string in `appsettings.json` to match your SQL Server
-4. Open Package Manager Console and run:
-   Update-Database
-
-5. 5. Press F5 to run
+4. Open Package Manager Console and run: `Update-Database`
+5. Press F5 to run
 
 ## Demo Credentials
 | Role | Email | Password |
